@@ -1,6 +1,7 @@
 package App::SD::ForeignReplica;
 use Any::Moose;
 use Params::Validate qw/:all/;
+use Data::Dumper;
 
 extends 'Prophet::ForeignReplica';
 sub integrate_changeset {
@@ -257,6 +258,7 @@ sub _set_uuid_for_remote_id {
 sub _url_based_uuid_for_remote_ticket_id {
     my $self = shift;
     my $id = shift;
+    print Dumper($id);
 
     return $self->uuid_for_url(
         $self->remote_url
