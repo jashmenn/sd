@@ -220,7 +220,7 @@ sub _construct_changeset_index_entry {
 
 sub remote_uri_path_for_id {
     die "your subclass needs to implement this to be able to ".
-        "map a remote id to /ticket/id or soemthing";
+        "map a remote id to /ticket/id or something";
 
 }
 
