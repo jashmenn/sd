@@ -87,6 +87,7 @@ sub find_matching_transactions {
     my %args     = validate( @_, { ticket => 1, starting_transaction => 1 } );
     my @raw_txns = @{ $self->sync_source->jira->getComments( $args{ticket}->{key} ) };
 
+
     for my $comment (@raw_txns) {
         $comment->{date} = App::SD::Util::string_to_datetime( $comment->{updated} );
     }
@@ -128,6 +129,9 @@ sub find_matching_transactions {
 
     $self->sync_source->log_debug('Done looking at pulled txns');
 
+
+    # print "here are the txns: should have comments\n";
+    # print Dumper(@txns);
     return \@txns;
 }
 
@@ -208,6 +212,7 @@ sub transcode_one_txn {
     my $ticket = shift;
 
     my $txn = $txn_wrapper->{object};
+    # print "one:  ";
     # print Dumper($txn_wrapper);
     if ( $txn_wrapper->{serial} == 0 ) {
         return $self->transcode_create_txn($txn_wrapper);
@@ -225,7 +230,7 @@ sub transcode_one_txn {
         }
     );
 
-    # $self->_include_change_comment( $changeset, $ticket_uuid, $txn );
+    $self->_include_change_comment( $changeset, $ticket_uuid, $txn );
 
     # print Dumper($changeset);
     # print "transaction has changes? " . $changeset->has_changes . "\n";
@@ -235,37 +240,37 @@ sub transcode_one_txn {
 }
 
 # TODO - come back and include change comments
-# sub _include_change_comment {
-#     my $self        = shift;
-#     my $changeset   = shift;
-#     my $ticket_uuid = shift;
-#     my $txn         = shift;
+sub _include_change_comment {
+    my $self        = shift;
+    my $changeset   = shift;
+    my $ticket_uuid = shift;
+    my $txn         = shift;
 
-#     my $comment = $self->new_comment_creation_change();
+    my $comment = $self->new_comment_creation_change();
 
-#     if ( my $content = $txn->{content} ) {
-#         if ( $content !~ /^\s*$/s ) {
-#             $comment->add_prop_change(
-#                 name => 'created',
-#                 new  => $txn->{date}->ymd . ' ' . $txn->{date}->hms,
-#             );
-#             $comment->add_prop_change(
-#                 name => 'creator',
-#                 new =>
-#                   $self->resolve_user_id_to( email_address => $txn->{author} ),
-#             );
-#             $comment->add_prop_change( name => 'content', new => $content );
-#             $comment->add_prop_change(
-#                 name => 'content_type',
-#                 new  => 'text/plain',
-#             );
-#             $comment->add_prop_change( name => 'ticket', new => $ticket_uuid, );
+    if ( my $content = $txn->{body} ) {
+        if ( $content !~ /^\s*$/s ) {
+            $comment->add_prop_change(
+                name => 'created',
+                new  => $txn->{date}->ymd . ' ' . $txn->{date}->hms,
+            );
+            $comment->add_prop_change(
+                name => 'creator',
+                new =>
+                  $self->resolve_user_id_to( email_address => $txn->{author} ),
+            );
+            $comment->add_prop_change( name => 'content', new => $content );
+            $comment->add_prop_change(
+                name => 'content_type',
+                new  => 'text/plain',
+            );
+            $comment->add_prop_change( name => 'ticket', new => $ticket_uuid, );
 
-#             $changeset->add_change( { change => $comment } );
-#         }
-#     }
+            $changeset->add_change( { change => $comment } );
+        }
+    }
 
-# }
+}
 
 # sub translate_prop_status {
 #     my $self   = shift;
