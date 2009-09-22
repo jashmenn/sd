@@ -194,7 +194,15 @@ sub transcode_create_txn {
         new => $ticket->{key},
     );
 
-    # print Dumper($change);
+    # data we still need to pull in:
+    # created:
+    # creator:
+    # original_replica:
+    # milestone:
+    # component:
+    # owner:
+    # due:
+    # reporter:
 
     $changeset->add_change( { change => $change } );
 
