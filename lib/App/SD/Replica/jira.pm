@@ -34,10 +34,10 @@ our %PROP_MAP = (
     'reporter' => "reporter",
     'status' => 'status',
     'summary' => 'summary',
+    'project' => 'project',
     'environment' => undef,
     'fixVersions' => undef,
     'priority' => undef, 
-    'project' => undef,
     'resolution' => undef,
     'type' => undef,
     'updated' => undef, 
@@ -73,6 +73,10 @@ sub BUILD {
 
     $self->create_status_map();
 }
+
+# == todo  
+# set "project", be able to set a default project, set it by project key e.g. RND
+# set "component", be able to set default component by name
 
 sub create_status_map {
     my $self = shift;

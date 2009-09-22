@@ -175,8 +175,8 @@ sub transcode_create_txn {
     # statuses: ["new","open","stalled","closed","rejected"]
     # project_name: ["Your SD Project"]
 
-    for my $prop (qw/summary description/) {
-        # print "setting $prop => " . $PROP_MAP{$prop} . " to " . $ticket->{$prop} . "\n";
+    for my $prop (qw/summary description project/) {
+        print "setting $prop => " . $PROP_MAP{$prop} . " to " . $ticket->{$prop} . "\n";
         $change->add_prop_change(
             name => $PROP_MAP{$prop} || $prop,
             new => $ticket->{$prop},
@@ -188,11 +188,18 @@ sub transcode_create_txn {
         new => $STATUS_MAP{$ticket->{"status"}} || $ticket->{"status"},
     );
 
+    # store component name or id?
+    $change->add_prop_change(
+        name => $PROP_MAP{"component"} || "component",
+        new => $ticket->{"components"}[0]->{name},
+    );
 
     $change->add_prop_change(
         name => $self->sync_source->uuid . '-id',
         new => $ticket->{key},
     );
+
+    print Dumper($ticket);
 
     # data we still need to pull in:
     # created:
