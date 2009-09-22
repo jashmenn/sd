@@ -55,13 +55,13 @@ sub BUILD {
       or die "Can't parse Jira server spec. Expected jira:http://jira-base-url";
 
     my ( $uri, $username, $password );
-
     $uri = URI->new($server);
 
-    if ( my $auth = $uri->userinfo ) {
-        ( $username, $password ) = split /:/, $auth, 2;
-        $uri->userinfo(undef);
-    }
+    # to set these up run the following:
+    # sd config user.username $USERNAME
+    # sd config user.password $PASSWORD
+    $username = $self->{app_handle}->{config}->{data}->{'user.username'};
+    $password = $self->{app_handle}->{config}->{data}->{'user.password'};
 
     $self->remote_url("$uri");
 
