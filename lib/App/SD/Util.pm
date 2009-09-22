@@ -3,13 +3,12 @@ use Any::Moose; # for warnings and strict at the least
 use DateTime;
 use Params::Validate qw/:all/;
 
-
 my %MONTHS = ( jan => 1, feb => 2, mar => 3, apr => 4, may => 5, jun => 6, jul => 7, aug => 8, sep => 9, oct => 10, nov => 11, dec => 12);
 
 
 sub string_to_datetime {
     my ($date)= validate_pos(@_, { type => SCALAR | UNDEF} );
-    if ($date =~ /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{1,2}):(\d{2}):(\d{2})Z?$/ ){
+    if ($date =~ /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{1,2}):(\d{2})[\:\.](\d{2,3})Z?/ ){ # todo, why doesn't a $ at the end match =~ 2009-09-16T22:44:48.000Z
         my ($year,$month,$day, $hour,$min,$sec) = ($1,$2,$3,$4,$5,$6);
         my $dt = DateTime->new( year => $year,
                                 month => $month,
