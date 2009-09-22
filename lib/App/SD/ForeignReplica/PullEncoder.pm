@@ -75,10 +75,13 @@ sub transcode_history {
 
 
     for my $txn ( sort { $b->{'serial'} <=> $a->{'serial'} } @$transactions ) {
+        # print "TXN for ticket....\n";
         $last_modified = $txn->{timestamp} if ( !$last_modified || ( $txn->{timestamp} > $last_modified ) );
         $self->sync_source->log_debug( "$ticket_id Transcoding transaction " . ++$txn_counter . " of " . scalar @$transactions );
 
         my $changeset = $self->transcode_one_txn( $txn, $initial_state, $final_state );
+
+        # print "transaction has changes: " . $changeset->has_changes . "\n" if $changeset;
         next unless $changeset && $changeset->has_changes;
 
         # the changesets are older than the ones that came before, so they goes first

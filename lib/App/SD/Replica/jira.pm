@@ -22,7 +22,32 @@ has owner      => ( isa => 'Str',             is => 'rw' );
 has query      => ( isa => 'Str',             is => 'rw' );
 # has repo       => ( isa => 'Str',             is => 'rw' );
 
-our %PROP_MAP = ( state => 'status', title => 'summary' );
+# jira's keys: 'description' 'duedate' 'environment' 'fixVersions' 'id' 'key' 'priority' 'project' 'reporter' 'resolution' 'status' 'summary' 'type' 'updated' 'votes'
+# sd keys: ["id","summary","status","milestone","component","owner","created","due","creator","reporter","original_replica"]
+# our %PROP_MAP = (description => 'body', status => 'state', summary => 'title', updated => 'date' );
+# our %PROP_MAP = (body => 'description', state => 'status', title => 'summary', date => 'updated');
+
+our %PROP_MAP = (
+    # jira's => sd's
+    'description' => 'body',
+    'duedate' => 'due',
+    'reporter' => "reporter",
+    'status' => 'status',
+    'summary' => 'summary',
+    'environment' => undef,
+    'fixVersions' => undef,
+    'priority' => undef, 
+    'project' => undef,
+    'resolution' => undef,
+    'type' => undef,
+    'updated' => undef, 
+    'votes' => undef
+    );
+
+our %STATUS_MAP = (
+   # jira's => sd's
+    1 => "open"
+    );
 
 sub BUILD {
     my $self = shift;

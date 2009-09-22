@@ -258,7 +258,6 @@ sub _set_uuid_for_remote_id {
 sub _url_based_uuid_for_remote_ticket_id {
     my $self = shift;
     my $id = shift;
-    print Dumper($id);
 
     return $self->uuid_for_url(
         $self->remote_url

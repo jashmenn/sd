@@ -14,6 +14,7 @@ has sync_source => (
 );
 
 my %PROP_MAP = %App::SD::Replica::jira::PROP_MAP;
+my %STATUS_MAP = %App::SD::Replica::jira::STATUS_MAP;
 
 sub ticket_id {
     my $self   = shift;
@@ -24,12 +25,12 @@ sub ticket_id {
 
 =cut
 
-# sub translate_ticket_state {
-#     my $self   = shift;
-#     my $ticket = shift;
+sub translate_ticket_state {
+    my $self   = shift;
+    my $ticket = shift;
 
-#     return $ticket;
-# }
+    return $ticket;
+}
 
 =head2 find_matching_tickets QUERY
 
@@ -52,7 +53,7 @@ sub find_matching_tickets {
     );
     my $jira = $self->sync_source->jira;
 
-    print Dumper($query{query});
+    # print Dumper($query{query});
 
     $jira->set_filter_iterator($query{query});
     my @issues = ();
@@ -81,133 +82,159 @@ Returns a reference to an array of all transactions (as hashes) on ticket $id af
 
 =cut
 
-# sub find_matching_transactions {
-#     my $self     = shift;
-#     my %args     = validate( @_, { ticket => 1, starting_transaction => 1 } );
-#     my @raw_txns =
-#       @{ $self->sync_source->jira->issue->comments( $args{ticket}->{number} ) };
+sub find_matching_transactions {
+    my $self     = shift;
+    my %args     = validate( @_, { ticket => 1, starting_transaction => 1 } );
+    my @raw_txns = @{ $self->sync_source->jira->getComments( $args{ticket}->{key} ) };
 
-#     for my $comment (@raw_txns) {
-#         $comment->{date} =
-#           App::SD::Util::string_to_datetime( $comment->{date} );
-#     }
+    for my $comment (@raw_txns) {
+        $comment->{date} = App::SD::Util::string_to_datetime( $comment->{updated} );
+    }
 
-#     my @txns;
-#     for my $txn ( sort { $a->{id} <=> $b->{id} } @raw_txns ) {
-#         my $txn_date = $txn->{date}->epoch;
+    my @txns;
+    for my $txn ( sort { $a->{id} <=> $b->{id} } @raw_txns ) {
+        my $txn_date = $txn->{date}->epoch;
 
-#         # Skip things we know we've already pulled
-#         next if $txn_date < ( $args{'starting_transaction'} || 0 );
+        # Skip things we know we've already pulled
+        next if $txn_date < ( $args{'starting_transaction'} || 0 );
 
-#         # Skip things we've pushed
-#         next if (
-#             $self->sync_source->foreign_transaction_originated_locally(
-#                 $txn_date, $args{'ticket'}->{number}
-#             )
-#           );
+        # Skip things we've pushed
+        next if (
+            $self->sync_source->foreign_transaction_originated_locally(
+                $txn_date, $args{'ticket'}->{key}
+            )
+          );
 
-#         # ok. it didn't originate locally. we might want to integrate it
-#         push @txns,
-#           {
-#             timestamp => $txn->{date},
-#             serial    => $txn->{id},
-#             object    => $txn,
-#           };
-#     }
+        # ok. it didn't originate locally. we might want to integrate it
+        push @txns,
+          {
+            timestamp => $txn->{date},
+            serial    => $txn->{id},
+            object    => $txn,
+          };
+    }
 
-#     my $ticket_created =
-#       App::SD::Util::string_to_datetime( $args{ticket}->{created_at} );
-#     if ( $ticket_created->epoch >= $args{'starting_transaction'} || 0 ) {
-#         unshift @txns,
-#           {
-#             timestamp => $ticket_created,
-#             serial    => 0,
-#             object    => $args{ticket},
-#           };
-#     }
+    # print Dumper($args{ticket}->{created});
 
-#     $self->sync_source->log_debug('Done looking at pulled txns');
+    my $ticket_created = App::SD::Util::string_to_datetime( $args{ticket}->{created} );
+    if ( $ticket_created->epoch >= $args{'starting_transaction'} || 0 ) {
+        unshift @txns,
+          {
+            timestamp => $ticket_created,
+            serial    => 0,
+            object    => $args{ticket},
+          };
+    }
 
-#     return \@txns;
-# }
+    $self->sync_source->log_debug('Done looking at pulled txns');
 
-# sub transcode_create_txn {
-#     my $self        = shift;
-#     my $txn         = shift;
-#     my $ticket      = $txn->{object};
-#     my $ticket_uuid = 
-#           $self->sync_source->uuid_for_remote_id($ticket->{number});
-#     my $creator =
-#       $self->resolve_user_id_to( email_address => $ticket->{user} );
-#     my $created = $txn->{timestamp};
-#     my $changeset = Prophet::ChangeSet->new(
-#         {
-#             original_source_uuid => $ticket_uuid,
-#             original_sequence_no => 0,
-#             creator              => $creator,
-#             created              => $created->ymd . " " . $created->hms
-#         }
-#     );
+    return \@txns;
+}
 
-#     my $change = Prophet::Change->new(
-#         {
-#             record_type => 'ticket',
-#             record_uuid => $ticket_uuid,
-#             change_type => 'add_file',
-#         }
-#     );
+sub transcode_create_txn {
+    my $self        = shift;
+    my $txn         = shift;
+    my $ticket      = $txn->{object};
+    my $ticket_uuid = $self->sync_source->uuid_for_remote_id($ticket->{key});
+    my $creator = $self->resolve_user_id_to( email_address => $ticket->{reporter} );
+    my $created = $txn->{timestamp};
+    my $changeset = Prophet::ChangeSet->new(
+        {
+            original_source_uuid => $ticket_uuid,
+            original_sequence_no => 0,
+            creator              => $creator,
+            created              => $created->ymd . " " . $created->hms
+        }
+    );
 
-#     for my $prop (qw/title body state/) {
-#         $change->add_prop_change(
-#             name => $PROP_MAP{$prop} || $prop,
-#             new => $ticket->{$prop},
-#         );
-#     }
+    my $change = Prophet::Change->new(
+        {
+            record_type => 'ticket',
+            record_uuid => $ticket_uuid,
+            change_type => 'add_file',
+        }
+    );
 
-#     $change->add_prop_change(
-#         name => $self->sync_source->uuid . '-id',
-#         new => $ticket->{number},
-#     );
+    # print Dumper($ticket);
 
-#     $changeset->add_change( { change => $change } );
+    # jira's keys:
+    # 'description' 'duedate' 'environment' 'fixVersions' 'id' 'key' 'priority' 'project' 'reporter' 'resolution' 'status' 'summary' 'type' 'updated' 'votes'
+    # sd expects:
+    # common_ticket_props: ["id","summary","status","milestone","component","owner","created","due","creator","reporter","original_replica"]
+    # milestones: ["alpha","beta","1.0"]
+    # default_component: ["core"]
+    # components: ["core","ui","docs","tests"]
+    # default_status: ["new"]
+    # active_statuses: ["new","open"]
+    # default_milestone: ["alpha"]
+    # prop_descriptions: [{"due":"when this ticket must be finished by","owner":"the email address of the person who is responsible for this ticket","reporter":"the email address of the person who reported this ticket","summary":"a one-line summary of what this ticket is about"}]
+    # statuses: ["new","open","stalled","closed","rejected"]
+    # project_name: ["Your SD Project"]
 
-#     return $changeset;
-# }
+    for my $prop (qw/summary description/) {
+        # print "setting $prop => " . $PROP_MAP{$prop} . " to " . $ticket->{$prop} . "\n";
+        $change->add_prop_change(
+            name => $PROP_MAP{$prop} || $prop,
+            new => $ticket->{$prop},
+        );
+    }
+
+    $change->add_prop_change(
+        name => $PROP_MAP{"status"} || "status",
+        new => $STATUS_MAP{$ticket->{"status"}} || $ticket->{"status"},
+    );
+
+
+    $change->add_prop_change(
+        name => $self->sync_source->uuid . '-id',
+        new => $ticket->{key},
+    );
+
+    # print Dumper($change);
+
+    $changeset->add_change( { change => $change } );
+
+    return $changeset;
+}
 
 # we might get return:
 # 0 changesets if it was a null txn
 # 1 changeset if it was a normal txn
 # 2 changesets if we needed to to some magic fixups.
 
-# sub transcode_one_txn {
-#     my $self               = shift;
-#     my $txn_wrapper        = shift;
-#     my $ticket = shift;
+sub transcode_one_txn {
+    my $self               = shift;
+    my $txn_wrapper        = shift;
+    my $ticket = shift;
 
-#     my $txn = $txn_wrapper->{object};
-#     if ( $txn_wrapper->{serial} == 0 ) {
-#         return $self->transcode_create_txn($txn_wrapper);
-#     }
+    my $txn = $txn_wrapper->{object};
+    # print Dumper($txn_wrapper);
+    if ( $txn_wrapper->{serial} == 0 ) {
+        return $self->transcode_create_txn($txn_wrapper);
+    }
 
-#     my $ticket_uuid =
-#       $self->sync_source->uuid_for_remote_id( $ticket->{number} );
+    my $ticket_uuid =
+      $self->sync_source->uuid_for_remote_id( $ticket->{key} );
 
-#     my $changeset = Prophet::ChangeSet->new(
-#         {
-#             original_source_uuid => $ticket_uuid,
-#             original_sequence_no => $txn->{id},
-#             creator =>
-#               $self->resolve_user_id_to( email_address => $txn->{author} ),
-#             created => $txn->{date}->ymd . " " . $txn->{date}->hms
-#         }
-#     );
+    my $changeset = Prophet::ChangeSet->new(
+        {
+            original_source_uuid => $ticket_uuid,
+            original_sequence_no => $txn->{id},
+            creator => $self->resolve_user_id_to( email_address => $txn->{reporter} ),
+            created => $txn->{date}->ymd . " " . $txn->{date}->hms
+        }
+    );
 
-#     $self->_include_change_comment( $changeset, $ticket_uuid, $txn );
+    # $self->_include_change_comment( $changeset, $ticket_uuid, $txn );
 
-#     return unless $changeset->has_changes;
-#     return $changeset;
-# }
+    # print Dumper($changeset);
+    # print "transaction has changes? " . $changeset->has_changes . "\n";
 
+    return unless $changeset->has_changes;
+    return $changeset;
+}
+
+# TODO - come back and include change comments
 # sub _include_change_comment {
 #     my $self        = shift;
 #     my $changeset   = shift;
@@ -246,12 +273,12 @@ Returns a reference to an array of all transactions (as hashes) on ticket $id af
 #     return lc($status);
 # }
 
-# sub resolve_user_id_to {
-#     my $self = shift;
-#     my $to   = shift;
-#     my $id   = shift;
-#     return $id . '@jira';
-# }
+sub resolve_user_id_to {
+    my $self = shift;
+    my $to   = shift;
+    my $id   = shift;
+    return $id;
+}
 
 __PACKAGE__->meta->make_immutable;
 no Any::Moose;
