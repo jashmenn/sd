@@ -44,10 +44,7 @@ our %PROP_MAP = (
     'votes' => undef
     );
 
-our %STATUS_MAP = (
-   # jira's => sd's
-    1 => "open"
-    );
+our %STATUS_MAP = (); # setup via API
 
 sub BUILD {
     my $self = shift;
@@ -74,6 +71,15 @@ sub BUILD {
             $password
         ) );
 
+    $self->create_status_map();
+}
+
+sub create_status_map {
+    my $self = shift;
+    my $jstatuses = $self->jira->getStatuses();
+    foreach my $status (@$jstatuses) {
+      $STATUS_MAP{$status->{id}} = lc $status->{name};
+    }
 }
 
 sub record_pushed_transactions {}
