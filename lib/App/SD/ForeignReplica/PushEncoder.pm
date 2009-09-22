@@ -53,6 +53,7 @@ sub integrate_change {
 
     if (my $err = $@) {
         $self->sync_source->log("Push error: ".$err);
+        die;
     }
 
     $self->after_integrate_change();

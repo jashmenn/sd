@@ -11,6 +11,7 @@ use JIRA::Client;
 use Data::Dumper;
 
 use Prophet::ChangeSet;
+# eval "use SOAP::Lite +trace => 'debug';";
 
 use constant scheme => 'jira';
 use constant pull_encoder => 'App::SD::Replica::jira::PullEncoder';
@@ -26,6 +27,9 @@ has query      => ( isa => 'Str',             is => 'rw' );
 # sd keys: ["id","summary","status","milestone","component","owner","created","due","creator","reporter","original_replica"]
 # our %PROP_MAP = (description => 'body', status => 'state', summary => 'title', updated => 'date' );
 # our %PROP_MAP = (body => 'description', state => 'status', title => 'summary', date => 'updated');
+
+# desire:
+# fill in defaults in
 
 our %PROP_MAP = (
     # jira's => sd's
