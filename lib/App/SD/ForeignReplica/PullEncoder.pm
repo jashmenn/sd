@@ -2,6 +2,7 @@ package App::SD::ForeignReplica::PullEncoder;
 use Any::Moose;
 use App::SD::Util;
 use Params::Validate qw/validate/;
+use Data::Dumper;
 
 sub run {
     my $self = shift;

@@ -11,6 +11,7 @@ has sync_source => (
 extends 'App::SD::ForeignReplica::PushEncoder';
 our %COMPONENTS_MAP = ();
 our %TYPES_MAP = ();
+my %STATUS_MAP_NAME = %App::SD::Replica::jira::STATUS_MAP_NAME;
 
 sub integrate_ticket_update {
     my $self = shift;
@@ -24,6 +25,14 @@ sub integrate_ticket_update {
     my $remote_ticket_id = $self->sync_source->remote_id_for_uuid( $change->record_uuid );
     my $ticket = $self->sync_source->jira->getIssue($remote_ticket_id);
     my $attr = $self->_recode_props_for_integrate($change);
+    my $jira = $self->sync_source->jira;
+
+    # print Dumper($attr);
+    # die;
+
+    # print "================================\n";
+    # print Dumper($attr->{status});
+    # die;
 
     # my @rfvs;
 
@@ -33,7 +42,14 @@ sub integrate_ticket_update {
 
     # print Dumper($remote_ticket_id);
     # print Dumper(@rfvs);
-    $self->sync_source->jira->updateIssue($remote_ticket_id, $attr);
+
+    # if($attr->{action}) {  
+    #   print "we have an action\n";
+    #   $jira->progress_workflow_action_safely($remote_ticket_id, $attr->{action});
+    # } 
+    $jira->updateIssue($remote_ticket_id, $attr);
+    # 
+
     # $ticket->edit( $remote_ticket_id, $attr->{title}, $attr->{body} );
     # if ( $attr->{status} ) {
     #     $ticket->reopen( $remote_ticket_id ) if $attr->{status} eq 'open';
@@ -61,7 +77,9 @@ sub integrate_ticket_create {
         components => [$attr->{component}],
         summary => $attr->{summary},
         assignee => $attr->{assignee},
-        type => $attr->{type}
+        type => $attr->{type},
+        description => $attr->{description},
+        status => $attr->{status}
       }
     );
 
@@ -69,7 +87,7 @@ sub integrate_ticket_create {
     if ( $new->{error} ) {
         die "\n\n$new->{error}";
     }
-    return $new->{number};
+    return $new->{key};
 }
 
 sub integrate_comment {
@@ -100,7 +118,7 @@ sub _recode_props_for_integrate {
 
     # neither body nor description pushes to jira with what we want.
 
-    for my $key (qw/summary description project body assignee/) {
+    for my $key (qw/summary description project assignee action/) {
         $attr{$key} = trim($props{$key}) if $props{$key};
     }
 
@@ -109,7 +127,8 @@ sub _recode_props_for_integrate {
             $attr{summary} = $props{$key};
         }
         elsif ( $key eq 'status' ) {
-            $attr{state} = $props{$key} =~ /new|open/ ? 'open' : 'closed';
+            # $attr{state} = $props{$key} =~ /new|open/ ? 'open' : 'closed';
+            $attr{status} = $STATUS_MAP_NAME{lc $props{$key}};
         }
         elsif ( $key eq 'component' ) {
             $attr{$key} = $self->_lookup_component($props{project}, $props{$key});
@@ -163,8 +182,8 @@ sub _build_types_map {
 sub trim
 {
     my $string = shift;
-    $string =~ s/^\s+//;
-    $string =~ s/\s+$//;
+    $string =~ s/^\s+// if $string;
+    $string =~ s/\s+$// if $string;
     return $string;
 }
 

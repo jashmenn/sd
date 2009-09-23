@@ -48,7 +48,8 @@ our %PROP_MAP = (
     'votes' => undef
     );
 
-our %STATUS_MAP = (); # setup via API
+our %STATUS_MAP = (); # setup via API, keys are ID
+our %STATUS_MAP_NAME = (); # setup via APa, keys are NAME
 
 sub BUILD {
     my $self = shift;
@@ -87,6 +88,7 @@ sub create_status_map {
     my $jstatuses = $self->jira->getStatuses();
     foreach my $status (@$jstatuses) {
       $STATUS_MAP{$status->{id}} = lc $status->{name};
+      $STATUS_MAP_NAME{lc $status->{name}} = $status->{id};
     }
 }
 

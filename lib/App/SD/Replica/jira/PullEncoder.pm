@@ -176,7 +176,7 @@ sub transcode_create_txn {
     # project_name: ["Your SD Project"]
 
     for my $prop (qw/summary description project/) {
-        print "setting $prop => " . $PROP_MAP{$prop} . " to " . $ticket->{$prop} . "\n";
+        # print "setting $prop => " . $PROP_MAP{$prop} . " to " . $ticket->{$prop} . "\n";
         $change->add_prop_change(
             name => $PROP_MAP{$prop} || $prop,
             new => $ticket->{$prop},
@@ -199,7 +199,7 @@ sub transcode_create_txn {
         new => $ticket->{key},
     );
 
-    print Dumper($ticket);
+    # print Dumper($ticket);
 
     # data we still need to pull in:
     # created:
