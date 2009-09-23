@@ -31,6 +31,7 @@ sub database_settings {
         default_component   => ['0AEC922F-57B1-44BE-9588-816E5841BB18' => 'core'],
         milestones          => ['1AF5CF74-A6D4-417E-A738-CCE64A0A7F71' => qw/alpha beta 1.0/],
         default_milestone   => ['BAB613BD-9E25-4612-8DE3-21E4572859EA' => 'alpha'],
+        default_project     => ['340D17AF-F0CB-B7DC-6550-1B09E9CFB7F8' => 'project'],
 
         project_name        => ['3B4B297C-906F-4018-9829-F7CC672274C9' => 'Your SD Project'],
         common_ticket_props => ['3f0a074f-af13-406f-bf7b-d69bbf360720' => qw/id summary status milestone component owner created due creator reporter original_replica/],

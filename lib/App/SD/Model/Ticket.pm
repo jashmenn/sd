@@ -23,6 +23,11 @@ sub default_prop_component {
     return $self->app_handle->setting(label => 'default_component')->get()->[0];
 }
 
+sub default_prop_project { 
+    my $self = shift; 
+    return $self->app_handle->setting(label => 'default_project')->get()->[0];
+}
+
 sub default_prop_milestone { 
     my $self = shift; 
     return $self->app_handle->setting(label => 'default_milestone')->get()->[0];
